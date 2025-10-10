@@ -83,7 +83,7 @@ export async function GET(
         console.log('Attempting to force Japanese transcript selection...');
         
         // Try to use the Japanese language continuation token
-        const preferredJapanese = japaneseLanguages.find(lang => 
+        const preferredJapanese = japaneseLanguages.find((lang: any) =>
           !lang.title.toLowerCase().includes('auto-generated')
         ) || japaneseLanguages[0];
         
@@ -138,7 +138,7 @@ export async function GET(
                     console.log('No transcript found in response structure');
                   }
                 }
-              } catch (apiError) {
+              } catch (apiError: any) {
                 console.warn('Direct API call failed:', apiError?.message || apiError);
               }
             } else {
@@ -164,8 +164,8 @@ export async function GET(
     if (!rawSegments || rawSegments.length === 0) {
       return NextResponse.json({
         available: false,
-        message: japaneseLanguages.length > 0 
-          ? `Japanese transcript options found but could not extract content. Available: ${japaneseLanguages.map(l => l.title).join(', ')}` 
+        message: japaneseLanguages.length > 0
+          ? `Japanese transcript options found but could not extract content. Available: ${japaneseLanguages.map((l: any) => l.title).join(', ')}`
           : 'No transcript available for this video',
         videoId,
         title: videoInfo.basic_info?.title || 'Unknown Title',
@@ -206,8 +206,8 @@ export async function GET(
       language: detectedLanguage,
       isJapanese,
       availableLanguages: japaneseLanguages.map((lang: any) => lang.title),
-      languageNote: !isJapanese && japaneseLanguages.length > 0 
-        ? `Japanese options available: ${japaneseLanguages.map(l => l.title).join(', ')}` 
+      languageNote: !isJapanese && japaneseLanguages.length > 0
+        ? `Japanese options available: ${japaneseLanguages.map((l: any) => l.title).join(', ')}`
         : undefined,
       segments,
       totalSegments: segments.length,

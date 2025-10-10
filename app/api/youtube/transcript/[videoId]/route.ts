@@ -22,9 +22,12 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ videoId: string }> }
 ) {
+  let videoId: string = '';
+
   try {
     // Await params in Next.js 15
-    const { videoId } = await params;
+    const resolvedParams = await params;
+    videoId = resolvedParams.videoId;
     
     // Get preferred language from query parameters
     const url = new URL(request.url);
@@ -92,12 +95,12 @@ export async function GET(
     if (isCurrentlyEnglish && japaneseLanguages.length > 0) {
       console.warn('⚠️  Got English transcript but Japanese is available:', {
         current: currentlySelected.title,
-        japanese: japaneseLanguages.map(lang => lang.title)
+        japanese: japaneseLanguages.map((lang: any) => lang.title)
       });
       
       // Note: YouTube.js currently doesn't support direct language selection for getTranscript()
       // The continuation token approach requires lower-level API access that's not exposed
-      console.log('Available Japanese options:', japaneseLanguages.map(lang => ({
+      console.log('Available Japanese options:', japaneseLanguages.map((lang: any) => ({
         title: lang.title,
         hasContinuation: !!lang.continuation
       })));
@@ -150,8 +153,8 @@ export async function GET(
     const detectedLanguage = selectedLanguage?.title || 'Unknown';
     
     // Determine if we should warn about language mismatch
-    const languageWarning = isCurrentlyEnglish && japaneseLanguages.length > 0 
-      ? `Note: Currently showing ${detectedLanguage} captions, but Japanese options are available: ${japaneseLanguages.map(lang => lang.title).join(', ')}`
+    const languageWarning = isCurrentlyEnglish && japaneseLanguages.length > 0
+      ? `Note: Currently showing ${detectedLanguage} captions, but Japanese options are available: ${japaneseLanguages.map((lang: any) => lang.title).join(', ')}`
       : undefined;
     
     // Return all available languages for now (including non-Japanese for debugging)

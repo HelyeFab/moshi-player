@@ -17,6 +17,9 @@ A feature-rich, modern YouTube player built with **Next.js 15**, **React 19**, a
 - **Responsive Design**: Mobile-first responsive design with Tailwind CSS
 - **YouTube API Integration**: Rich video metadata from YouTube Data API v3
 - **Server-Side API Routes**: Secure API key handling with Next.js API routes
+- **Japanese Transcript Support** 🇯🇵: Real-time synchronized Japanese captions with auto-scroll
+- **Transcript Seek**: Click any transcript line to jump to that moment in the video
+- **Multiple Views**: Toggle between current caption only or full scrollable transcript
 
 ### 🔧 Technical Features
 - **TypeScript**: Full type safety with comprehensive interfaces and enums

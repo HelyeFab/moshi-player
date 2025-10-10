@@ -44,12 +44,25 @@ export default function Caption({
       }
       
       console.log('Python API result:', pythonData.available ? 'No Japanese transcripts' : 'Failed');
-      
+
+      // If Python API is blocked by YouTube, try alternative route
+      if (pythonData.message?.includes('blocking') || (pythonData as any).error_type === 'RequestBlocked') {
+        console.log('Python API blocked, trying alternative YouTube.js route...');
+        const altResponse = await fetch(`/api/youtube/transcript-alt/${videoId}`);
+        const altData: TranscriptData = await altResponse.json();
+
+        if (altResponse.ok && altData.available && altData.isJapanese) {
+          console.log('Alternative API successful - Japanese transcript found:', altData.language);
+          setTranscript(altData);
+          return;
+        }
+      }
+
       // If Python API found no Japanese transcripts, show clear error
       if (pythonResponse.ok && !pythonData.available) {
         throw new Error(pythonData.message || 'No Japanese transcripts available for this video');
       }
-      
+
       // If Python API completely failed, throw error (no English fallback)
       throw new Error('Failed to fetch Japanese transcript. This application requires Japanese captions.');
     } catch (err) {
@@ -65,24 +78,33 @@ export default function Caption({
     fetchTranscript();
   }, [videoId]);
 
+  // Find current caption segment based on video time
+  const currentSegment = useMemo(() => {
+    if (!transcript?.segments) return null;
+
+    return transcript.segments.find(segment =>
+      currentTime >= segment.start && currentTime <= segment.end
+    );
+  }, [transcript, currentTime]);
+
   // Auto-scroll to current segment when it changes
   useEffect(() => {
     if (!currentSegment || !showFullTranscript) return;
-    
+
     const segmentKey = `${currentSegment.start}`;
     const segmentElement = segmentRefs.current[segmentKey];
-    
+
     if (segmentElement && transcriptContainerRef.current) {
       const container = transcriptContainerRef.current;
       const elementTop = segmentElement.offsetTop;
       const elementHeight = segmentElement.offsetHeight;
       const containerHeight = container.offsetHeight;
       const containerScrollTop = container.scrollTop;
-      
+
       // Check if element is not fully visible
       const isElementAboveViewport = elementTop < containerScrollTop + 100;
       const isElementBelowViewport = elementTop + elementHeight > containerScrollTop + containerHeight - 100;
-      
+
       if (isElementAboveViewport || isElementBelowViewport) {
         // Smooth scroll to center the active segment
         const scrollPosition = elementTop - containerHeight / 2 + elementHeight / 2;
@@ -93,15 +115,6 @@ export default function Caption({
       }
     }
   }, [currentSegment, showFullTranscript]);
-
-  // Find current caption segment based on video time
-  const currentSegment = useMemo(() => {
-    if (!transcript?.segments) return null;
-    
-    return transcript.segments.find(segment => 
-      currentTime >= segment.start && currentTime <= segment.end
-    );
-  }, [transcript, currentTime]);
 
   // Get upcoming segments for preview
   const upcomingSegments = useMemo(() => {

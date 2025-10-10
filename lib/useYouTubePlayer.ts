@@ -96,7 +96,7 @@ export function useYouTubePlayer(videoId: string, config: Partial<YouTubePlayerC
           console.error('YouTube player error for video:', videoId, 'Error code:', event.data);
           
           // Error codes based on Context7 official YouTube API documentation
-          const errorMessages = {
+          const errorMessages: { [key: number]: string } = {
             2: 'Invalid parameter value',
             5: 'Content not playable in HTML5 player',
             100: 'Video not found or has been removed',
