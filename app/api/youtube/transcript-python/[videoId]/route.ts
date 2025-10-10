@@ -63,12 +63,21 @@ export async function GET(
 async function fetchViaCloudFunction(videoId: string) {
   try {
     const url = `${GOOGLE_CLOUD_FUNCTION_URL}?videoId=${encodeURIComponent(videoId)}`;
+    console.log('[Transcript API] Fetching from:', url);
+
+    // Add timeout to fetch
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`Cloud Function returned ${response.status}: ${response.statusText}`);
