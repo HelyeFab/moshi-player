@@ -31,10 +31,18 @@ export default function Home() {
   // Auto-rotate carousel
   useEffect(() => {
     if (!videoId) {
+      console.log('🎨 YT-PLAYER: Carousel initialized with', musicImages.length, 'images')
       const interval = setInterval(() => {
-        setCurrentImageIndex((prev) => (prev + 1) % musicImages.length)
+        setCurrentImageIndex((prev) => {
+          const newIndex = (prev + 1) % musicImages.length
+          console.log('🎨 YT-PLAYER: Carousel rotating to image', newIndex + 1, '/', musicImages.length)
+          return newIndex
+        })
       }, 3000)
-      return () => clearInterval(interval)
+      return () => {
+        console.log('🎨 YT-PLAYER: Carousel stopped')
+        clearInterval(interval)
+      }
     }
   }, [videoId, musicImages.length])
 
