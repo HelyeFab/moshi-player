@@ -1,16 +1,20 @@
 import type { Metadata } from 'next'
+import { ThemeProvider } from '@/components/theme-provider'
+import { Toaster } from '@/components/ui/toaster'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Modern YouTube Player - Next.js 15 & React 19',
-  description: 'A feature-rich YouTube player built with the latest Next.js, React, and TypeScript patterns from Context7',
-  keywords: ['YouTube', 'Player', 'Next.js', 'React', 'TypeScript', 'Video'],
-  authors: [{ name: 'Helye' }],
-  openGraph: {
-    title: 'Modern YouTube Player',
-    description: 'Built with Next.js 15, React 19, and TypeScript',
-    type: 'website',
+  title: 'YT Player - Modern YouTube Player',
+  description: 'Modern YouTube Player with Transcripts and Clean Interface',
+  icons: {
+    icon: [
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
   },
+  manifest: '/site.webmanifest',
 }
 
 export default function RootLayout({
@@ -19,18 +23,33 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link
+          rel="preload"
+          href="/fonts/Mulish-VariableFont_wght.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/Mulish-Italic-VariableFont_wght.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
+        />
+        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/site.webmanifest" />
       </head>
-      <body 
-        className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white antialiased"
-        suppressHydrationWarning={true}
-      >
-        <main className="container mx-auto px-4 py-8">
+      <body className="font-sans antialiased">
+        <ThemeProvider>
           {children}
-        </main>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   )

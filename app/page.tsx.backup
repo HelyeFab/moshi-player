@@ -13,30 +13,6 @@ export default function Home() {
   const playerRef = useRef<any>(null)
   const [isAPIReady, setIsAPIReady] = useState(false)
   const [isEmbedded, setIsEmbedded] = useState(false)
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
-
-  const musicImages = [
-    '/music/ape.png',
-    '/music/listen.png',
-    '/music/music.png',
-    '/music/music (1).png',
-    '/music/tiger.png',
-    '/music/unicorn.png',
-    '/music/unicorn (1).png',
-    '/music/youtube.png',
-    '/music/youtube (1).png',
-    '/music/youtube (2).png',
-  ]
-
-  // Auto-rotate carousel
-  useEffect(() => {
-    if (!videoId) {
-      const interval = setInterval(() => {
-        setCurrentImageIndex((prev) => (prev + 1) % musicImages.length)
-      }, 3000)
-      return () => clearInterval(interval)
-    }
-  }, [videoId, musicImages.length])
 
   // Detect if we're in an iframe
   useEffect(() => {
