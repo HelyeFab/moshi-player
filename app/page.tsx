@@ -229,8 +229,6 @@ export default function Home() {
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
   }, [])
-    return () => window.removeEventListener('message', handleMessage)
-  }, [])
 
   // If embedded, show only the video player
   if (isEmbedded) {
