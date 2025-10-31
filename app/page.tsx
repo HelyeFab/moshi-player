@@ -163,6 +163,8 @@ export default function Home() {
         'http://localhost:3000',
         'http://localhost:3001',
         'http://localhost:3002',
+        'http://localhost:3003',
+        'http://localhost:3010',
         'https://brains-d2764.web.app',
         'https://brains-d2764.firebaseapp.com',
         // Add your production Brains app domains here
