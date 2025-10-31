@@ -16,16 +16,16 @@ export default function Home() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   const musicImages = [
-    '/music/ape.png',
-    '/music/listen.png',
-    '/music/music.png',
-    '/music/music (1).png',
     '/music/tiger.png',
-    '/music/unicorn.png',
-    '/music/unicorn (1).png',
-    '/music/youtube.png',
-    '/music/youtube (1).png',
     '/music/youtube (2).png',
+    '/music/ape.png',
+    '/music/unicorn (1).png',
+    '/music/listen.png',
+    '/music/youtube.png',
+    '/music/music (1).png',
+    '/music/unicorn.png',
+    '/music/youtube (1).png',
+    '/music/music.png',
   ]
 
   // Auto-rotate carousel
