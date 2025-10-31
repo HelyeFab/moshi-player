@@ -247,42 +247,94 @@ export default function Home() {
             <div id="yt-player" className="w-full h-full"></div>
           </div>
         ) : (
-          <div className="text-center p-8 max-w-md">
-            <div className="mb-8 flex justify-center">
-              <div className="relative">
-                <div className="w-32 h-32 bg-gradient-to-br from-red-500 to-pink-500 rounded-full opacity-20 blur-2xl absolute inset-0 animate-pulse"></div>
-                <svg
-                  className="w-32 h-32 relative z-10 text-red-500/80"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+          <div className="relative w-full h-full overflow-hidden">
+            {/* Animated Background Elements */}
+            <div className="absolute inset-0 overflow-hidden">
+              {/* Music Visualizer Bars */}
+              <div className="absolute bottom-0 left-0 right-0 h-32 flex items-end justify-center gap-2 px-12">
+                {[...Array(30)].map((_, i) => {
+                  const height = Math.random() * 60 + 20
+                  const duration = Math.random() * 0.8 + 0.4
+                  const delay = i * 0.03
+                  return (
+                    <div
+                      key={i}
+                      className="flex-1 bg-gradient-to-t from-red-500/30 to-pink-500/30 rounded-t-lg animate-pulse"
+                      style={{
+                        height: `${height}%`,
+                        animationDuration: `${duration}s`,
+                        animationDelay: `${delay}s`,
+                        maxWidth: '8px',
+                      }}
+                    />
+                  )
+                })}
               </div>
+
+              {/* Ambient Glow Effects */}
+              <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
+              <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s' }} />
             </div>
-            <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">
-              No Video Loaded
-            </h2>
-            <p className="text-muted-foreground text-lg mb-6">
-              Paste a YouTube URL in the controls above to start watching
-            </p>
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground/60">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-              </svg>
-              <span>Powered by YouTube</span>
+
+            {/* Main Content */}
+            <div className="relative z-10 flex flex-col items-center justify-center h-full p-8">
+              {/* Image Carousel */}
+              <div className="relative mb-12 w-64 h-64">
+                {/* Carousel Container */}
+                <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br from-gray-800 to-gray-900">
+                  {musicImages.map((img, index) => (
+                    <div
+                      key={img}
+                      className={`absolute inset-0 transition-all duration-1000 ${
+                        index === currentImageIndex
+                          ? 'opacity-100 scale-100'
+                          : 'opacity-0 scale-95'
+                      }`}
+                    >
+                      <img
+                        src={img}
+                        alt={`Music illustration ${index + 1}`}
+                        className="w-full h-full object-contain p-4"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Glowing Ring Around Image */}
+                <div className="absolute inset-0 rounded-2xl border-4 border-red-500/30 animate-pulse" style={{ animationDuration: '2s' }} />
+
+                {/* Carousel Indicators */}
+                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
+                  {musicImages.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentImageIndex(index)}
+                      className={`w-2 h-2 rounded-full transition-all ${
+                        index === currentImageIndex
+                          ? 'bg-red-500 w-6'
+                          : 'bg-gray-500/30 hover:bg-gray-500/50'
+                      }`}
+                      aria-label={`Go to slide ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Text Content */}
+              <div className="text-center mt-8 space-y-4">
+                <h2 className="text-4xl font-bold bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent animate-pulse" style={{ animationDuration: '3s' }}>
+                  Ready to Groove
+                </h2>
+                <p className="text-gray-400 text-lg max-w-md">
+                  Paste a YouTube URL above and let the music take over
+                </p>
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-500 pt-4">
+                  <svg className="w-5 h-5 animate-pulse" fill="currentColor" viewBox="0 0 24 24" style={{ animationDuration: '2s' }}>
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                  </svg>
+                  <span>Powered by YouTube</span>
+                </div>
+              </div>
             </div>
           </div>
         )}
