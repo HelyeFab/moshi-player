@@ -1,465 +1,299 @@
-'use client'
+'use client';
 
-import { useState, useEffect, useRef } from 'react'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { Button } from '@/components/ui/button'
-import { Play, Pause, Volume2, VolumeX, ExternalLink } from 'lucide-react'
+import { useState, useCallback } from 'react';
+import YouTubePlayer from '@/components/YouTubePlayer';
+import VideoMetadata from '@/components/VideoMetadata';
+import Caption from '@/components/Caption';
+import ClientWrapper from '@/components/ClientWrapper';
+import { extractVideoId, isValidVideoId, getThumbnailUrl } from '@/utils/youtube';
 
-export default function Home() {
-  const [videoUrl, setVideoUrl] = useState('')
-  const [videoId, setVideoId] = useState('')
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
-  const playerRef = useRef<any>(null)
-  const [isAPIReady, setIsAPIReady] = useState(false)
-  const [isEmbedded, setIsEmbedded] = useState(false)
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+/**
+ * Main demo page for the YouTube Player
+ * Using latest Next.js App Router patterns from Context7
+ */
+export default function HomePage() {
+  const [currentVideoId, setCurrentVideoId] = useState('dQw4w9WgXcQ'); // Rick Roll as default
+  const [inputUrl, setInputUrl] = useState('');
+  const [playerEvents, setPlayerEvents] = useState<string[]>([]);
+  const [showCaptions, setShowCaptions] = useState(false);
+  const [currentTime, setCurrentTime] = useState<number>(0);
+  const [seekFunction, setSeekFunction] = useState<((time: number) => void) | null>(null);
 
-  const musicImages = [
-    '/music/tiger.png',
-    '/music/youtube (2).png',
-    '/music/ape.png',
-    '/music/unicorn (1).png',
-    '/music/listen.png',
-    '/music/youtube.png',
-    '/music/music (1).png',
-    '/music/unicorn.png',
-    '/music/youtube (1).png',
-    '/music/music.png',
-  ]
+  // Sample videos for quick testing (selected based on Context7 embedding patterns)
+  const sampleVideos = [
+    { id: 'M7lc1UVf-VE', title: 'Context7 Example Video', type: 'Test' }, // From Context7 docs
+    { id: 'jNQXAC9IVRw', title: 'Me at the zoo (First YouTube Video)', type: 'Historic' },
+    { id: 'ScMzIvxBSi4', title: 'The Evolution of Dance', type: 'Classic' },
+    { id: 'hFZFjoX2cGg', title: 'Dramatic Chipmunk', type: 'Meme' },
+    { id: 'K2cYWfq--Nw', title: 'Sneezing Panda', type: 'Viral' },
+    { id: 'dQw4w9WgXcQ', title: 'Rick Astley - Never Gonna Give You Up', type: 'Music' },
+  ];
 
-  // Auto-rotate carousel
-  useEffect(() => {
-    if (!videoId) {
-      console.log('🎨 YT-PLAYER: Carousel initialized with', musicImages.length, 'images')
-      const interval = setInterval(() => {
-        setCurrentImageIndex((prev) => {
-          const newIndex = (prev + 1) % musicImages.length
-          console.log('🎨 YT-PLAYER: Carousel rotating to image', newIndex + 1, '/', musicImages.length)
-          return newIndex
-        })
-      }, 3000)
-      return () => {
-        console.log('🎨 YT-PLAYER: Carousel stopped')
-        clearInterval(interval)
-      }
-    }
-  }, [videoId, musicImages.length])
+  // Log player events for debugging - using useCallback with proper dependencies
+  const logEvent = useCallback((event: string, data?: any) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = `[${timestamp}] ${event}${data ? `: ${JSON.stringify(data)}` : ''}`;
+    setPlayerEvents(prev => [logEntry, ...prev].slice(0, 10)); // Keep last 10 events
+  }, []); // Empty dependency array since we use functional update
 
-  // Detect if we're in an iframe
-  useEffect(() => {
-    setIsEmbedded(window.self !== window.top)
-  }, [])
-
-  // Load YouTube IFrame API
-  useEffect(() => {
-    if (typeof window !== 'undefined' && !(window as any).YT) {
-      const tag = document.createElement('script')
-      tag.src = 'https://www.youtube.com/iframe_api'
-      const firstScriptTag = document.getElementsByTagName('script')[0]
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag)
-
-      // @ts-ignore
-      window.onYouTubeIframeAPIReady = () => {
-        setIsAPIReady(true)
-      }
-    } else if ((window as any).YT && (window as any).YT.Player) {
-      setIsAPIReady(true)
-    }
-  }, [])
-
-  const extractVideoId = (url: string) => {
-    const regex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/
-    const match = url.match(regex)
-    return match ? match[1] : ''
-  }
-
+  // Handle URL input and video ID extraction
   const handleUrlSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const id = extractVideoId(videoUrl)
-    if (id) {
-      setVideoId(id)
+    e.preventDefault();
+    const trimmedUrl = inputUrl.trim();
+    
+    if (!trimmedUrl) {
+      alert('Please enter a YouTube URL or video ID');
+      return;
+    }
+    
+    const videoId = extractVideoId(trimmedUrl);
+    
+    if (videoId && isValidVideoId(videoId)) {
+      setCurrentVideoId(videoId);
+      setInputUrl('');
+      logEvent('Video Changed', { videoId, originalUrl: trimmedUrl });
     } else {
-      alert('Please enter a valid YouTube URL')
+      alert(`Unable to extract video ID from: "${trimmedUrl}"\n\nSupported formats:\n• https://www.youtube.com/watch?v=VIDEO_ID\n• https://youtu.be/VIDEO_ID\n• VIDEO_ID (11 characters)\n• YouTube Shorts, Embed URLs, etc.`);
     }
-  }
+  };
 
-  // Initialize YouTube Player when API is ready and videoId changes
-  useEffect(() => {
-    if (!isAPIReady || !videoId) return
+  return (
+    <ClientWrapper>
+      <div className="max-w-6xl mx-auto space-y-8">
+      {/* Header */}
+      <div className="text-center space-y-4">
+        <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-red-500 to-red-700 bg-clip-text text-transparent">
+          Modern YouTube Player
+        </h1>
+        <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+          Built with Next.js 15, React 19, and TypeScript using the latest patterns from Context7
+        </p>
+        <p className="text-sm text-gray-400 max-w-xl mx-auto mt-2">
+          💡 <strong>Tip:</strong> Add your YouTube API key to <code className="bg-gray-700 px-1 rounded">.env.local</code> to see rich video metadata below the player!
+        </p>
+        <div className="flex flex-wrap gap-2 justify-center text-sm">
+          <span className="bg-blue-600 px-3 py-1 rounded-full">Next.js 15</span>
+          <span className="bg-blue-500 px-3 py-1 rounded-full">React 19</span>
+          <span className="bg-blue-400 px-3 py-1 rounded-full">TypeScript</span>
+          <span className="bg-red-600 px-3 py-1 rounded-full">YouTube API</span>
+          <span className="bg-green-600 px-3 py-1 rounded-full">Tailwind CSS</span>
+        </div>
+      </div>
 
-    const initPlayer = () => {
-      playerRef.current = new (window as any).YT.Player('yt-player', {
-        height: '100%',
-        width: '100%',
-        videoId: videoId,
-        playerVars: {
-          autoplay: 0,
-          controls: 1,
-          enablejsapi: 1,
-          origin: window.location.origin
-        },
-        events: {
-          onReady: (event: any) => {
-            // Broadcast ready state to parent
-            window.parent.postMessage({
-              type: 'PLAYER_READY',
-              videoId: videoId
-            }, '*')
-          },
-          onStateChange: (event: any) => {
-            const state = event.data
-            const isPlaying = state === (window as any).YT.PlayerState.PLAYING
-            setIsPlaying(isPlaying)
+      {/* Video URL Input */}
+      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+        <h2 className="text-2xl font-semibold mb-4">Load YouTube Video</h2>
+        <div className="mb-4 p-3 bg-yellow-900/30 border border-yellow-600/30 rounded-lg">
+          <p className="text-yellow-200 text-sm">
+            <strong>⚠️ Note:</strong> Some videos (especially music, Shorts, or copyrighted content) may not be embeddable due to YouTube's restrictions. 
+            If a video fails to load, you'll see a "Watch on YouTube" button instead.
+          </p>
+        </div>
+        <form onSubmit={handleUrlSubmit} className="flex gap-4">
+          <input
+            type="text"
+            placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ or YouTube Shorts URL"
+            value={inputUrl}
+            onChange={(e) => setInputUrl(e.target.value)}
+            className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+          />
+          <button
+            type="submit"
+            className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
+          >
+            Load Video
+          </button>
+        </form>
+      </div>
 
-            // Broadcast state change to parent
-            window.parent.postMessage({
-              type: 'STATE_CHANGE',
-              state: state,
-              isPlaying: isPlaying
-            }, '*')
-          }
-        }
-      })
-    }
+      {/* Quick Video Selection */}
+      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+        <h2 className="text-2xl font-semibold mb-4">Sample Videos</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sampleVideos.map((video) => (
+            <button
+              key={video.id}
+              onClick={() => {
+                setCurrentVideoId(video.id);
+                logEvent('Sample Video Selected', { title: video.title });
+              }}
+              className={`p-4 rounded-lg border-2 transition-all hover:scale-105 ${
+                currentVideoId === video.id
+                  ? 'border-red-500 bg-red-500/20'
+                  : 'border-white/20 bg-white/5 hover:border-white/40'
+              }`}
+            >
+              <img
+                src={getThumbnailUrl(video.id, 'medium')}
+                alt={video.title}
+                className="w-full aspect-video object-cover rounded mb-2"
+                loading="lazy"
+              />
+              <p className="text-sm font-medium truncate">{video.title}</p>
+              <p className="text-xs text-gray-400 mt-1">{video.type}</p>
+            </button>
+          ))}
+        </div>
+      </div>
 
-    // Small delay to ensure DOM is ready
-    setTimeout(initPlayer, 100)
+      {/* YouTube Player */}
+      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+        <h2 className="text-2xl font-semibold mb-4">YouTube Player</h2>
+        <YouTubePlayer
+          videoId={currentVideoId}
+          config={{
+            width: '100%',
+            height: 500,
+            autoplay: false,
+            // Minimal config based on Context7 YouTube API docs to avoid embedding restrictions
+          }}
+          onReady={() => logEvent('Player Ready')}
+          onPlay={() => logEvent('Play')}
+          onPause={() => logEvent('Pause')}
+          onEnd={() => logEvent('Video Ended')}
+          onError={(error) => logEvent('Error', { error })}
+          onTimeUpdate={(currentTime, duration) => {
+            // Update current time for captions
+            setCurrentTime(currentTime);
+            // Only log every 10 seconds to avoid spam
+            if (Math.floor(currentTime) % 10 === 0) {
+              logEvent('Time Update', { currentTime: Math.floor(currentTime), duration: Math.floor(duration) });
+            }
+          }}
+          onVolumeChange={(volume) => logEvent('Volume Change', { volume })}
+          onPlaybackRateChange={(rate) => logEvent('Playback Rate Change', { rate })}
+          onSeekRequest={(seekFn) => {
+            console.log('Seek function received from player');
+            // Use functional update to avoid recreating the function on every render
+            setSeekFunction(() => seekFn);
+          }}
+          className="w-full"
+        />
+      </div>
 
-    return () => {
-      if (playerRef.current?.destroy) {
-        playerRef.current.destroy()
-        playerRef.current = null
-      }
-    }
-  }, [isAPIReady, videoId])
+      {/* Video Metadata */}
+      <VideoMetadata videoId={currentVideoId} />
 
-  // Broadcast time updates
-  useEffect(() => {
-    if (!playerRef.current) return
-
-    const interval = setInterval(() => {
-      if (playerRef.current?.getCurrentTime) {
-        const time = playerRef.current.getCurrentTime()
-        const duration = playerRef.current.getDuration()
-        setCurrentTime(time)
-
-        window.parent.postMessage({
-          type: 'TIME_UPDATE',
-          currentTime: time,
-          duration: duration
-        }, '*')
-      }
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [isPlaying])
-
-  // Listen for commands from parent window (Brains)
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      // SECURITY: Validate origin - whitelist trusted parent domains
-      const allowedOrigins = [
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://localhost:3002',
-        'http://localhost:3003',
-        'http://localhost:3010',
-        'https://brains-d2764.web.app',
-        'https://brains-d2764.firebaseapp.com',
-        // Add your production Brains app domains here
-      ]
-
-      // Reject messages from untrusted origins
-      if (!allowedOrigins.includes(event.origin)) {
-        console.warn('[YT-Player Security] Rejected message from untrusted origin:', event.origin)
-        return
-      }
-
-      // Validate message structure
-      if (!event.data || typeof event.data !== 'object') {
-        console.warn('[YT-Player Security] Invalid message data structure')
-        return
-      }
-
-      const { type, value } = event.data
-
-      // Validate message type
-      if (!type || typeof type !== 'string') {
-        console.warn('[YT-Player Security] Invalid message type')
-        return
-      }
-
-      // LOAD_VIDEO can run without a player (it creates one)
-      if (type === 'LOAD_VIDEO') {
-        if (typeof value === 'string') {
-          setVideoUrl(value)
-          const id = extractVideoId(value)
-          if (id) {
-            setVideoId(id)
-          }
-        }
-        return
-      }
-
-      // All other commands require an active player
-      if (!playerRef.current) {
-        console.warn('[YT-Player] Player not ready for command:', type)
-        return
-      }
-
-      switch (type) {
-        case 'PLAY':
-          playerRef.current.playVideo()
-          break
-        case 'PAUSE':
-          playerRef.current.pauseVideo()
-          break
-        case 'SEEK':
-          if (typeof value === 'number') {
-            playerRef.current.seekTo(value, true)
-          }
-          break
-        case 'SET_VOLUME':
-          if (typeof value === 'number') {
-            playerRef.current.setVolume(value)
-          }
-          break
-        case 'MUTE':
-          playerRef.current.mute()
-          break
-        case 'UNMUTE':
-          playerRef.current.unMute()
-          break
-        default:
-          console.warn('[YT-Player] Unknown command type:', type)
-      }
-    }
-
-    window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, [])
-
-  // If embedded, show only the video player
-  if (isEmbedded) {
-    return (
-      <div className="h-screen w-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
-        {videoId ? (
-          <div className="w-full h-full">
-            <div id="yt-player" className="w-full h-full"></div>
-          </div>
+      {/* Transcript Controls */}
+      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-semibold">📝 Video Transcript</h2>
+          <button
+            onClick={() => setShowCaptions(!showCaptions)}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              showCaptions 
+                ? 'bg-red-600 hover:bg-red-700 text-white' 
+                : 'bg-gray-600 hover:bg-gray-700 text-white'
+            }`}
+          >
+            {showCaptions ? 'Hide Transcript' : 'Show Transcript'}
+          </button>
+        </div>
+        
+        {showCaptions ? (
+          <Caption
+            videoId={currentVideoId}
+            currentTime={currentTime}
+            isVisible={true}
+            onToggle={setShowCaptions}
+            onSeekToTime={seekFunction || undefined}
+            className=""
+          />
         ) : (
-          <div className="relative w-full h-full overflow-hidden">
-            {/* Animated Background Elements */}
-            <div className="absolute inset-0 overflow-hidden">
-              {/* Music Visualizer Bars */}
-              <div className="absolute bottom-0 left-0 right-0 h-32 flex items-end justify-center gap-2 px-12">
-                {[...Array(30)].map((_, i) => {
-                  const height = Math.random() * 60 + 20
-                  const duration = Math.random() * 0.8 + 0.4
-                  const delay = i * 0.03
-                  return (
-                    <div
-                      key={i}
-                      className="flex-1 bg-gradient-to-t from-red-500/30 to-pink-500/30 rounded-t-lg animate-pulse"
-                      style={{
-                        height: `${height}%`,
-                        animationDuration: `${duration}s`,
-                        animationDelay: `${delay}s`,
-                        maxWidth: '8px',
-                      }}
-                    />
-                  )
-                })}
-              </div>
-
-              {/* Ambient Glow Effects */}
-              <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
-              <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s' }} />
-            </div>
-
-            {/* Main Content */}
-            <div className="relative z-10 flex flex-col items-center justify-center h-full p-8">
-              {/* Image Carousel */}
-              <div className="relative mb-12 w-64 h-64">
-                {/* Carousel Container */}
-                <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br from-gray-800 to-gray-900">
-                  {musicImages.map((img, index) => (
-                    <div
-                      key={img}
-                      className={`absolute inset-0 transition-all duration-1000 ${
-                        index === currentImageIndex
-                          ? 'opacity-100 scale-100'
-                          : 'opacity-0 scale-95'
-                      }`}
-                    >
-                      <img
-                        src={img}
-                        alt={`Music illustration ${index + 1}`}
-                        className="w-full h-full object-contain p-4"
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                {/* Glowing Ring Around Image */}
-                <div className="absolute inset-0 rounded-2xl border-4 border-red-500/30 animate-pulse" style={{ animationDuration: '2s' }} />
-
-                {/* Carousel Indicators */}
-                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
-                  {musicImages.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentImageIndex(index)}
-                      className={`w-2 h-2 rounded-full transition-all ${
-                        index === currentImageIndex
-                          ? 'bg-red-500 w-6'
-                          : 'bg-gray-500/30 hover:bg-gray-500/50'
-                      }`}
-                      aria-label={`Go to slide ${index + 1}`}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Text Content */}
-              <div className="text-center mt-8 space-y-4">
-                <h2 className="text-4xl font-bold bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 bg-clip-text text-transparent animate-pulse" style={{ animationDuration: '3s' }}>
-                  Ready to Groove
-                </h2>
-                <p className="text-gray-400 text-lg max-w-md">
-                  Paste a YouTube URL above and let the music take over
-                </p>
-                <div className="flex items-center justify-center gap-2 text-sm text-gray-500 pt-4">
-                  <svg className="w-5 h-5 animate-pulse" fill="currentColor" viewBox="0 0 24 24" style={{ animationDuration: '2s' }}>
-                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                  </svg>
-                  <span>Powered by YouTube</span>
-                </div>
-              </div>
-            </div>
+          <div className="text-center py-8 text-gray-400">
+            <p className="text-lg mb-2">📝</p>
+            <p>Click "Show Transcript" to view synchronized captions for this video.</p>
+            <p className="text-sm mt-2">Supports multiple languages when available.</p>
           </div>
         )}
       </div>
-    )
-  }
 
-  // Standard standalone mode - show full UI
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter">
-        <div className="container flex h-16 items-center justify-between px-4 md:px-8">
-          <div className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold">YT Player</h1>
-            <span className="px-2 py-1 text-xs bg-primary/20 text-primary rounded-full">
-              v2.1.0
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <a href="https://github.com" target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                GitHub
-              </a>
-            </Button>
-            <ThemeToggle />
-          </div>
+      {/* Features List */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+          <h2 className="text-2xl font-semibold mb-4">🎮 Features</h2>
+          <ul className="space-y-2 text-gray-300">
+            <li>✅ Custom player controls with modern UI</li>
+            <li>✅ Fullscreen support with API detection</li>
+            <li>✅ Volume control with mute/unmute</li>
+            <li>✅ Playback speed adjustment (0.25x - 2x)</li>
+            <li>✅ Progress bar with seek functionality</li>
+            <li>✅ Real-time time display (MM:SS format)</li>
+            <li>✅ Video quality indicator</li>
+            <li>✅ Error handling with user-friendly messages</li>
+            <li>✅ Loading states and animations</li>
+            <li>✅ Responsive design with Tailwind CSS</li>
+            <li>✅ YouTube API integration for metadata</li>
+            <li>✅ Rich video information display</li>
+            <li>✅ Live video transcript/captions display</li>
+            <li>✅ Time-synchronized caption highlighting</li>
+          </ul>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 md:px-8">
-        <div className="max-w-4xl mx-auto space-y-8">
-          {/* URL Input */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Enter YouTube URL</h2>
-            <form onSubmit={handleUrlSubmit} className="flex gap-2">
-              <input
-                type="url"
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="https://youtube.com/watch?v=..."
-                className="flex-1 px-3 py-2 border border-input bg-background rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
-                required
-              />
-              <Button type="submit">Load Video</Button>
-            </form>
-          </div>
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+          <h2 className="text-2xl font-semibold mb-4">🔧 Technical Features</h2>
+          <ul className="space-y-2 text-gray-300">
+            <li>✅ TypeScript with full type safety</li>
+            <li>✅ React 19 hooks (useState, useEffect, useCallback)</li>
+            <li>✅ Custom hooks for state management</li>
+            <li>✅ Performance optimizations (throttling, debouncing)</li>
+            <li>✅ Modern Next.js App Router patterns</li>
+            <li>✅ Client-side rendering with 'use client'</li>
+            <li>✅ YouTube IFrame API integration</li>
+            <li>✅ Cross-browser fullscreen API support</li>
+            <li>✅ Accessible keyboard and mouse controls</li>
+            <li>✅ Mobile-responsive design</li>
+            <li>✅ YouTube Data API v3 integration</li>
+            <li>✅ Server-side API routes for data fetching</li>
+            <li>✅ YouTube Transcript API integration</li>
+            <li>✅ Real-time caption synchronization</li>
+            <li>✅ Clickable transcript navigation (jump to any segment)</li>
+          </ul>
+        </div>
+      </div>
 
-          {/* Video Player */}
-          {videoId && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Video Player</h2>
-              <div className="aspect-video rounded-lg overflow-hidden border">
-                <div id="yt-player" className="w-full h-full"></div>
-              </div>
-
-              {/* Player Controls */}
-              <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (isPlaying) {
-                      playerRef.current?.pauseVideo()
-                    } else {
-                      playerRef.current?.playVideo()
-                    }
-                  }}
-                >
-                  {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                </Button>
-                <div className="flex-1">
-                  <div className="text-sm text-muted-foreground">
-                    Playing: YouTube Video {videoId}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Time: {Math.floor(currentTime)}s
-                  </div>
-                </div>
-                <Button variant="outline" size="sm">
-                  <Volume2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+      {/* Event Log */}
+      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+        <h2 className="text-2xl font-semibold mb-4">📊 Player Events</h2>
+        <div className="bg-black/30 rounded-lg p-4 max-h-64 overflow-y-auto">
+          {playerEvents.length > 0 ? (
+            <ul className="space-y-1 font-mono text-sm">
+              {playerEvents.map((event, index) => (
+                <li key={index} className="text-green-400">
+                  {event}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500 text-center">No events logged yet</p>
           )}
-
-          {/* Features */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-6 border rounded-lg">
-              <h3 className="text-lg font-semibold mb-2">🎥 YouTube Integration</h3>
-              <p className="text-muted-foreground">
-                Load and play YouTube videos with a clean, modern interface
-              </p>
-            </div>
-            <div className="p-6 border rounded-lg">
-              <h3 className="text-lg font-semibold mb-2">🎮 Remote Control</h3>
-              <p className="text-muted-foreground">
-                postMessage API for external control from parent window
-              </p>
-            </div>
-            <div className="p-6 border rounded-lg">
-              <h3 className="text-lg font-semibold mb-2">🎯 Clean Interface</h3>
-              <p className="text-muted-foreground">
-                Distraction-free video viewing experience
-              </p>
-            </div>
-            <div className="p-6 border rounded-lg">
-              <h3 className="text-lg font-semibold mb-2">🌙 Dark Mode</h3>
-              <p className="text-muted-foreground">
-                Toggle between light and dark themes
-              </p>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="text-center text-muted-foreground">
-            <p>YT Player - Modern YouTube Player with Remote Control</p>
-            <p className="text-sm mt-2">Built with Next.js, React, and Tailwind CSS</p>
-          </div>
         </div>
-      </main>
-    </div>
-  )
+        <button
+          onClick={() => setPlayerEvents([])}
+          className="mt-4 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+        >
+          Clear Events
+        </button>
+      </div>
+
+      {/* Footer */}
+      <div className="text-center text-gray-400 space-y-2">
+        <p>
+          Built with modern web technologies and patterns from{' '}
+          <a 
+            href="https://context7.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-red-400 hover:text-red-300 transition-colors"
+          >
+            Context7
+          </a>
+        </p>
+        <p className="text-sm">
+          Next.js {process.env.NODE_ENV === 'development' ? 'Development' : 'Production'} Build
+        </p>
+      </div>
+      </div>
+    </ClientWrapper>
+  );
 }
