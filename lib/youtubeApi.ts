@@ -75,6 +75,10 @@ export async function fetchVideoDetails(videoId: string): Promise<YouTubeVideoDe
   }
 
   try {
+    // Add timeout handling with AbortController
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
     const response = await fetch(
       `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${apiKey}&part=snippet,contentDetails,statistics`,
       {
@@ -82,10 +86,13 @@ export async function fetchVideoDetails(videoId: string): Promise<YouTubeVideoDe
         headers: {
           'Accept': 'application/json',
         },
+        signal: controller.signal,
         // Cache for 5 minutes
         next: { revalidate: 300 }
       }
     );
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`YouTube API error: ${response.status} ${response.statusText}`);
@@ -116,7 +123,15 @@ export async function fetchVideoDetails(videoId: string): Promise<YouTubeVideoDe
       defaultAudioLanguage: snippet.defaultAudioLanguage,
     };
   } catch (error) {
-    console.error('Error fetching video details:', error);
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        console.error('YouTube API request timed out after 15 seconds');
+      } else {
+        console.error('Error fetching video details:', error.message);
+      }
+    } else {
+      console.error('Error fetching video details:', error);
+    }
     return null;
   }
 }
@@ -136,6 +151,10 @@ export async function fetchMultipleVideoDetails(videoIds: string[]): Promise<You
   const limitedIds = videoIds.slice(0, 50);
 
   try {
+    // Add timeout handling with AbortController
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
     const response = await fetch(
       `https://www.googleapis.com/youtube/v3/videos?id=${limitedIds.join(',')}&key=${apiKey}&part=snippet,contentDetails,statistics`,
       {
@@ -143,9 +162,12 @@ export async function fetchMultipleVideoDetails(videoIds: string[]): Promise<You
         headers: {
           'Accept': 'application/json',
         },
+        signal: controller.signal,
         next: { revalidate: 300 }
       }
     );
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`YouTube API error: ${response.status} ${response.statusText}`);
@@ -172,7 +194,15 @@ export async function fetchMultipleVideoDetails(videoIds: string[]): Promise<You
       };
     }) || [];
   } catch (error) {
-    console.error('Error fetching multiple video details:', error);
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        console.error('YouTube API request timed out after 15 seconds');
+      } else {
+        console.error('Error fetching multiple video details:', error.message);
+      }
+    } else {
+      console.error('Error fetching multiple video details:', error);
+    }
     return [];
   }
 }
@@ -188,6 +218,10 @@ export async function searchVideos(query: string, maxResults: number = 10): Prom
   }
 
   try {
+    // Add timeout handling with AbortController
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
     // First, search for video IDs
     const searchResponse = await fetch(
       `https://www.googleapis.com/youtube/v3/search?q=${encodeURIComponent(query)}&key=${apiKey}&part=id&type=video&maxResults=${maxResults}`,
@@ -196,9 +230,12 @@ export async function searchVideos(query: string, maxResults: number = 10): Prom
         headers: {
           'Accept': 'application/json',
         },
+        signal: controller.signal,
         next: { revalidate: 300 }
       }
     );
+
+    clearTimeout(timeoutId);
 
     if (!searchResponse.ok) {
       throw new Error(`YouTube API error: ${searchResponse.status} ${searchResponse.statusText}`);
@@ -214,7 +251,15 @@ export async function searchVideos(query: string, maxResults: number = 10): Prom
     // Then, get detailed information for those videos
     return await fetchMultipleVideoDetails(videoIds);
   } catch (error) {
-    console.error('Error searching videos:', error);
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        console.error('YouTube API search request timed out after 15 seconds');
+      } else {
+        console.error('Error searching videos:', error.message);
+      }
+    } else {
+      console.error('Error searching videos:', error);
+    }
     return [];
   }
 }
